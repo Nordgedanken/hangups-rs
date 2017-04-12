@@ -8,3 +8,4 @@ Cargo.lock
 target/
 **/*.rs.bk
 Cargo.lock
+src/proto/**/*

@@ -1,12 +1,13 @@
 [package]
 name = "hangups"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["MTRNord"]
 
 [dependencies]
 yup-oauth2 = "1.0.5"
 hyper = "0.10.2"
+hyper-native-tls = "0.2.2"
 serde = "0.9"
 serde_json = "0.9"
-serde_derive = "0.9"
-hyper-native-tls = "0.2.2"
+protobuf = "1.2.2"
+rand = "0.3"
