@@ -1,0 +1,6 @@
+[package]
+name = "hangups"
+version = "0.1.0"
+authors = ["marce"]
+
+[dependencies]
