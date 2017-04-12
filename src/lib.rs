@@ -79,39 +79,34 @@ pub mod hangups {
     use rand::random;
     use hyper::header::Headers;
     use hyper::header::Cookie;
-    use hyper::client::{Client, IntoUrl};
-    use hyper::client::RequestBuilder;
-    use hyper::method::Method;
-    header! { (Content_Type, "content-type") => [String] }
+    use hyper::client::Client;
+    header! { (ContentType, "content-type") => [String] }
     header! {
               (XGoogEncodeResponseIfExecutable, "X-Goog-Encode-Response-If-Executable") => [String]
             }
 
-    fn GetAuthHeaders() {}
+    fn get_auth_headers() {}
 
-    fn ApiRequest(endpointUrl: String, contentType: String, cookies: String, payload: SendChatMessageRequest) {
+    fn api_request(endpoint_url: String,
+                   content_type: String,
+                   cookies: String,
+                   payload: SendChatMessageRequest) {
         let mut headers = Headers::new();
         headers.set(Cookie(vec![String::from(cookies.to_owned())]));
-        headers.set(Content_Type(String::from(contentType.to_owned())));
+        headers.set(ContentType(String::from(content_type.to_owned())));
         headers.set(XGoogEncodeResponseIfExecutable(String::from("base64".to_owned())));
         let client = Client::new();
-        let custom_request = RequestBuilder {
-            client: &client,
-            url: endpointUrl.into_url(),
-            headers: Some(headers),
-            method: Method::Post,
-            body: payload
-        };
+        let post_request = client.post(&*endpoint_url).headers(headers);
     }
 
-    fn ProtobufApiRequest(apiEndpoint: String,
-                          requestStruct: SendChatMessageRequest,
-                          responseStruct: SendChatMessageResponse) {
-        let url = format!("https://clients6.google.com/chat/v1/{}", apiEndpoint);
-        let output = self::ApiRequest(url,
-                                      String::from("application/x-protobuf"),
-                                      String::from("proto"),
-                                      requestStruct);
+    fn protobuf_api_request(api_endpoint: String,
+                            request_struct: SendChatMessageRequest,
+                            response_struct: SendChatMessageResponse) {
+        let url = format!("https://clients6.google.com/chat/v1/{}", api_endpoint);
+        let output = api_request(url,
+                                 String::from("application/x-protobuf"),
+                                 String::from("proto"),
+                                 request_struct);
     }
 
     pub fn send_message(message: String, conv_id_raw: String) {
@@ -127,24 +122,24 @@ pub mod hangups {
 
 
         //Prepare Request
-        let request_header = RequestHeader::new();
+        let mut request_header = RequestHeader::new();
         request_header.set_language_code(String::from("en"));
 
-        let deliveryMedium = DeliveryMedium::new();
-        deliveryMedium.set_medium_type(DeliveryMediumType::DELIVERY_MEDIUM_BABEL);
-        let expectedOtr = OffTheRecordStatus::OFF_THE_RECORD_STATUS_ON_THE_RECORD;
-        let clientGeneratedId = random::<u64>();
-        let eventType = EventType::EVENT_TYPE_REGULAR_CHAT_MESSAGE;
-        let event_request_header = EventRequestHeader::new();
-        let conv_id = ConversationId::new();
+        let mut delivery_medium = DeliveryMedium::new();
+        delivery_medium.set_medium_type(DeliveryMediumType::DELIVERY_MEDIUM_BABEL);
+        let expected_otr = OffTheRecordStatus::OFF_THE_RECORD_STATUS_ON_THE_RECORD;
+        let client_generated_id = random::<u64>();
+        let event_type = EventType::EVENT_TYPE_REGULAR_CHAT_MESSAGE;
+        let mut event_request_header = EventRequestHeader::new();
+        let mut conv_id = ConversationId::new();
         conv_id.set_id(conv_id_raw);
         event_request_header.set_conversation_id(conv_id);
-        event_request_header.set_delivery_medium(deliveryMedium);
-        event_request_header.set_expected_otr(expectedOtr);
-        event_request_header.set_client_generated_id(clientGeneratedId);
-        event_request_header.set_event_type(eventType);
+        event_request_header.set_delivery_medium(delivery_medium);
+        event_request_header.set_expected_otr(expected_otr);
+        event_request_header.set_client_generated_id(client_generated_id);
+        event_request_header.set_event_type(event_type);
 
-        let request = SendChatMessageRequest::new();
+        let mut request = SendChatMessageRequest::new();
         request.set_request_header(request_header);
         request.set_message_content(message_content);
         request.set_event_request_header(event_request_header);
