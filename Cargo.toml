@@ -7,7 +7,5 @@ authors = ["MTRNord"]
 yup-oauth2 = "1.0.5"
 hyper = "0.10.2"
 hyper-native-tls = "0.2.2"
-serde = "0.9"
-serde_json = "0.9"
 protobuf = "1.2.2"
 rand = "0.3"
