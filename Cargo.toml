@@ -4,8 +4,13 @@ version = "0.0.1"
 authors = ["MTRNord"]
 
 [dependencies]
-yup-oauth2 = "1.0.5"
-hyper = "0.10.2"
-hyper-native-tls = "0.2.2"
+hyper = { git = "https://github.com/hyperium/hyper" }
 protobuf = "1.2.2"
 rand = "0.3"
+sha1 = "0.2.0"
+rustc-serialize = "0.3.23"
+jconfig = "0.1.0"
+regex = "0.2"
+url = "1.4.0"
+tokio-core = "0.1.6"
+futures = "0.1.13"

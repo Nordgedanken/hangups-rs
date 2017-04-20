@@ -1,44 +1,148 @@
 #[path = "proto/hangouts.rs"] mod hangouts;
 
 pub mod hangups {
-    use hangups::hangouts::{MessageContent, Segment, SegmentType, RequestHeader, EventRequestHeader,
-                         SendChatMessageRequest, DeliveryMediumType, OffTheRecordStatus,
-                         EventType, SendChatMessageResponse, DeliveryMedium, ConversationId};
+    use hangups::hangouts::{MessageContent, Segment, SegmentType, RequestHeader,
+                            EventRequestHeader, SendChatMessageRequest, DeliveryMediumType,
+                            OffTheRecordStatus, EventType, SendChatMessageResponse,
+                            DeliveryMedium, ConversationId};
     use protobuf::RepeatedField;
     use rand::random;
-    use hyper::header::Headers;
     use hyper::header::Cookie;
-    use hyper::client::Client;
+    use hyper::client::Request;
+    use hyper::{Method, Uri};
+    use std::io::{Read, Write};
+    use hyper::error::Error;
+    use protobuf::Message;
+    use std::collections::HashMap;
+    use std::time::*;
+    use sha1::Sha1;
+    use rustc_serialize::hex::ToHex;
+    use rustc_serialize::base64::FromBase64;
+    use protobuf::core::parse_from_bytes;
+    use auth::get_auth;
+    use helper::get_configs;
+    use std::str::FromStr;
+    use std;
+
     header! { (ContentType, "content-type") => [String] }
     header! {
               (XGoogEncodeResponseIfExecutable, "X-Goog-Encode-Response-If-Executable") => [String]
             }
 
-    fn get_auth_headers() {}
+    fn get_cookies() -> Result<HashMap<String, String>, Error> {
+        let config = get_configs().unwrap();
+        if (config.get_raw("SAPISID") == None) || (config.get_raw("HSID") == None) || (config.get_raw("SSID") == None) || (config.get_raw("APISID") == None) || (config.get_raw("SID") == None) {
+            get_auth(String::from(""), String::from(""));
+        }
+
+        let sapisid_cookie = String::from(config.get_raw("SAPISID").unwrap().as_string().unwrap());
+        let hsid_cookie = String::from(config.get_raw("HSID").unwrap().as_string().unwrap());
+        let ssid_cookie = String::from(config.get_raw("SSID").unwrap().as_string().unwrap());
+        let apisid_cookie = String::from(config.get_raw("APISID").unwrap().as_string().unwrap());
+        let sid_cookie = String::from(config.get_raw("SID").unwrap().as_string().unwrap());
+
+        let mut cookies = HashMap::new();
+        cookies.insert(String::from("SAPISID"), sapisid_cookie);
+        cookies.insert(String::from("HSID"), hsid_cookie);
+        cookies.insert(String::from("SSID"), ssid_cookie);
+        cookies.insert(String::from("APISID"), apisid_cookie);
+        cookies.insert(String::from("SID"), sid_cookie);
+        Ok(cookies)
+    }
+
+    fn get_auth_headers(sapisid: String) -> Result<HashMap<String, String>, Error> {
+        let origin_url = String::from("https://talkgadget.google.com");
+        let now = SystemTime::now();
+        let dur = now.duration_since(UNIX_EPOCH).unwrap();
+        let timestamp_msec = dur.as_secs();
+
+
+        let auth_string = String::from(format!("{} {} {}", timestamp_msec, sapisid, origin_url));
+        let mut hash = Sha1::new();
+        hash.update(auth_string.as_bytes());
+        let hash_bytes = hash.digest().bytes();
+        let hex_sha1 = hash_bytes.to_hex();
+        let sapisid_hash = format!("SAPISIDHASH {}_{}", timestamp_msec, hex_sha1);
+        let mut auth_cookies = HashMap::new();
+        auth_cookies.insert(String::from("authorization"), sapisid_hash);
+        auth_cookies.insert(String::from("x-origin"), origin_url);
+        auth_cookies.insert(String::from("x-goog-authuser"), String::from("0"));
+        Ok(auth_cookies)
+    }
 
     fn api_request(endpoint_url: String,
                    content_type: String,
-                   cookies: String,
-                   payload: SendChatMessageRequest) {
-        let mut headers = Headers::new();
-        headers.set(Cookie(vec![String::from(cookies.to_owned())]));
-        headers.set(ContentType(String::from(content_type.to_owned())));
-        headers.set(XGoogEncodeResponseIfExecutable(String::from("base64".to_owned())));
-        let client = Client::new();
-        let post_request = client.post(&*endpoint_url).headers(headers);
+                   response_type: String,
+                   payload: std::vec::Vec<u8>)
+                   -> Result<String, Error> {
+       use hyper::Client;
+       use tokio_core::reactor::Core;
+       use std::str::FromStr;
+       use futures::{Future, Stream};
+
+       let mut core = Core::new().unwrap();
+       let handle = core.handle();
+       let client = Client::configure()
+                   .keep_alive(true)
+                   .build(&handle);
+        let url = format!("{}?key=AIzaSyAfFJCeph-euFSwtmqFZi0kaKk-cZ5wufM&alt={}",
+                          endpoint_url,
+                          response_type).parse::<Uri>().unwrap();;
+        let auth_header = get_auth_headers(String::from("PLACEHOLDER"))
+            .unwrap();
+        let mut fresh_request = Request::new(Method::Post, url);
+        let cookies = get_cookies().unwrap();
+        let mut cookie_vec = Vec::new();
+        for (key, val) in cookies {
+            cookie_vec.push(format!("{}={}", key, val))
+        }
+        fresh_request.headers_mut().set(Cookie(cookie_vec));
+        fresh_request.headers_mut().set(ContentType(String::from(content_type.to_owned())));
+        fresh_request.headers_mut().set(XGoogEncodeResponseIfExecutable(String::from("base64".to_owned())));
+        fresh_request.set_body(payload);
+        for (key, val) in auth_header {
+            fresh_request.headers_mut().append_raw(key, val.as_bytes().to_vec());
+        }
+        let mut body = String::new();
+
+        let mut post = {
+            let post_req = client.request(fresh_request).map_err(|_| ()).and_then(|res| {
+                            res.body().for_each(|chunk| {
+                                let body_chunk = String::from_utf8(chunk.to_vec()).unwrap();
+                                body.push_str(body_chunk.as_str());
+                                Ok(())
+                            });
+                            Ok(())
+                        })
+                        .map(|_| {
+                            println!("\n\nDone.");
+                        });
+            post_req
+        };
+
+        core.run(post).unwrap();
+
+        Ok(body)
     }
 
     fn protobuf_api_request(api_endpoint: String,
-                            request_struct: SendChatMessageRequest,
-                            response_struct: SendChatMessageResponse) {
+                            request_struct: SendChatMessageRequest)
+                            -> Result<SendChatMessageResponse, Error> {
         let url = format!("https://clients6.google.com/chat/v1/{}", api_endpoint);
+        let payload = request_struct.write_to_bytes().unwrap();
         let output = api_request(url,
                                  String::from("application/x-protobuf"),
                                  String::from("proto"),
-                                 request_struct);
+                                 payload);
+        let decoded_output = output.unwrap().as_str().from_base64().unwrap();
+        let response_proto = parse_from_bytes::<SendChatMessageResponse>(&decoded_output[..])
+            .unwrap();
+        Ok(response_proto)
     }
 
-    pub fn send_message(message: String, conv_id_raw: String) {
+    pub fn send_message(message: String,
+                        conv_id_raw: String)
+                        -> Result<SendChatMessageResponse, Error> {
         //Prepare message
         let segment_type = SegmentType::SEGMENT_TYPE_TEXT;
         let mut segment_raw = Segment::new();
@@ -73,10 +177,9 @@ pub mod hangups {
         request.set_message_content(message_content);
         request.set_event_request_header(event_request_header);
 
-        //Prepare response
-        let response = SendChatMessageResponse::new();
-
-        let err = protobuf_api_request(String::from("conversations/sendchatmessage"), request, response);
+        let output = protobuf_api_request(String::from("conversations/sendchatmessage"), request)
+            .unwrap();
+        Ok(output)
     }
 }
 
@@ -86,7 +189,7 @@ mod tests {
     fn test_send_message() {
         use super::hangups::send_message;
 
-        let test_message = String::from("TEST!");
+        let test_message = String::from("Diese Nachricht sendet der Bot!");
         let test_conv = String::from("Ugxu9JRlbNPSqk5Ye1V4AaABAQ");
         send_message(test_message, test_conv);
     }
