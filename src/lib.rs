@@ -15,7 +15,7 @@ pub mod auth {
     use hyper::client::{Response, HttpConnector};
     use tokio_core::reactor::Core;
     use hyper::header::Headers;
-    fn do_auth_step(mut core: &mut Core, client: &Client<HttpConnector, Body>, url: Uri, resp: &Response, resp_body: &str, email: String, password: String, mut resp_headers_raw: &mut Headers) {
+    fn do_auth_step(client: &Client<HttpConnector, Body>, url: Uri, resp: &Response, resp_body: &str, email: String, password: String, mut resp_headers_raw: &Headers) {
         use hyper::header::{Headers, SetCookie, UserAgent};
         use hyper::client::Request;
         use hyper::{Method, Uri};
@@ -25,7 +25,9 @@ pub mod auth {
         use std::str::FromStr;
         use futures::Future;
         use futures::Stream;
+        use tokio_core::reactor::Core;
 
+        let mut core = Core::new().unwrap();
         header! { (ContentType, "content-type") => [String] }
         header! { (GAPS, "GAPS") => [String] }
         header! { (GALX, "GALX") => [String] }
@@ -229,30 +231,13 @@ pub mod auth {
         println!("You typed: {}", client_passwd);
 
         // Login Step1
-        let req = {
-            let req_raw = client.get(auth_uri).and_then(|res| {
-                println!("Response: {}", &res.status());
-                let mut headers =  {
-                                &res.headers()
-                               };
-                let mut body = String::new();
-
-                &res.body().for_each(|chunk| {
-                    let body_chunk = String::from_utf8(chunk.to_vec()).unwrap();
-                    body.push_str(body_chunk.as_str());
+        let req = client.get(auth_uri).and_then(move |res| {
+                    do_auth_step(&client, email_uri, &res, &format!("{:?}", &res.body()).as_str(), client_email, client_passwd, &res.headers());
                     Ok(())
+                })
+                .map(|_| {
+                    println!("\n\nDone.");
                 });
-                {
-                    let core_raw = core;
-                    do_auth_step(&mut core, &client, email_uri, &res, &body.as_str(), client_email, client_email, &mut headers);
-                }
-                Ok(())
-            })
-            .map(|_| {
-                println!("\n\nDone.");
-            });
-            req_raw
-        };
 
         core.run(req).unwrap();
     }

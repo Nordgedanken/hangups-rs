@@ -79,6 +79,9 @@ pub mod hangups {
        use tokio_core::reactor::Core;
        use std::str::FromStr;
        use futures::{Future, Stream};
+       use std::cell::RefCell;
+       use std::rc::Rc;
+
 
        let mut core = Core::new().unwrap();
        let handle = core.handle();
@@ -105,20 +108,12 @@ pub mod hangups {
         }
         let mut body = String::new();
 
-        let mut post = {
-            let post_req = client.request(fresh_request).map_err(|_| ()).and_then(|res| {
-                            res.body().for_each(|chunk| {
-                                let body_chunk = String::from_utf8(chunk.to_vec()).unwrap();
-                                body.push_str(body_chunk.as_str());
-                                Ok(())
-                            });
-                            Ok(())
-                        })
-                        .map(|_| {
+        let mut post = client.request(fresh_request)
+                        .map(|res| {
+                            let body = res.body();
                             println!("\n\nDone.");
+                            body
                         });
-            post_req
-        };
 
         core.run(post).unwrap();
 
