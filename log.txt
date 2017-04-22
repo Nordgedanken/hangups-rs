@@ -1,23 +1,18 @@
    Compiling hangups v0.0.1 (file:///source)
-error[E0382]: use of moved value: `res`
-   --> src/lib.rs:236:55
+error: no method named `deconstruct` found for type `hyper::client::FutureResponse` in the current scope
+   --> src/lib.rs:235:46
     |
-235 |                     let body = format!("{:?}", res.body());
-    |                                                --- value moved here
-236 |                     do_auth_step(&client, email_uri, &res, body.as_str(), client_email, client_passwd, &res.headers());
-    |                                                       ^^^ value used here after move
-    |
-    = note: move occurs because `res` has type `hyper::client::Response`, which does not implement the `Copy` trait
+235 |         let (_, uri, _, headers, body) = req.deconstruct();
+    |                                              ^^^^^^^^^^^
 
-error[E0382]: use of moved value: `res`
-   --> src/lib.rs:236:105
+error[E0277]: the trait bound `str: std::marker::Sized` is not satisfied
+   --> src/lib.rs:235:34
     |
-235 |                     let body = format!("{:?}", res.body());
-    |                                                --- value moved here
-236 |                     do_auth_step(&client, email_uri, &res, body.as_str(), client_email, client_passwd, &res.headers());
-    |                                                                                                         ^^^ value used here after move
+235 |         let (_, uri, _, headers, body) = req.deconstruct();
+    |                                  ^^^^ the trait `std::marker::Sized` is not implemented for `str`
     |
-    = note: move occurs because `res` has type `hyper::client::Response`, which does not implement the `Copy` trait
+    = note: `str` does not have a constant size known at compile-time
+    = note: all local variables must have a statically known size
 
 error: aborting due to 2 previous errors
 

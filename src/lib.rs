@@ -15,7 +15,7 @@ pub mod auth {
     use hyper::client::{Response, HttpConnector};
     use tokio_core::reactor::Core;
     use hyper::header::Headers;
-    fn do_auth_step(client: &Client<HttpConnector, Body>, url: Uri, resp: &Response, resp_body: &str, email: String, password: String, mut resp_headers_raw: &Headers) {
+    fn do_auth_step(client: &Client<HttpConnector, Body>, url: Uri, resp_body: &str, email: String, password: String, mut resp_headers_raw: &Headers) {
         use hyper::header::{Headers, SetCookie, UserAgent};
         use hyper::client::Request;
         use hyper::{Method, Uri};
@@ -231,14 +231,18 @@ pub mod auth {
         println!("You typed: {}", client_passwd);
 
         // Login Step1
-        let req = client.get(auth_uri).and_then(|res| {
-                    let body = format!("{:?}", res.body());
-                    do_auth_step(&client, email_uri, &res, body.as_str(), client_email, client_passwd, &res.headers());
-                    Ok(())
-                })
-                .map(|_| {
-                    println!("\n\nDone.");
-                });
+        let req = client.get(auth_uri);
+        let (_, uri, _, headers, body) = req.deconstruct();
+        do_auth_step(&client, email_uri, &body, client_email, client_passwd, headers);
+
+        // .and_then(|res| {
+        //             let body = format!("{:?}", (res).body());
+        //             do_auth_step(&client, email_uri, &res, &body, client_email, client_passwd, &res.headers());
+        //             Ok(())
+        //         })
+        //         .map(|_| {
+        //             println!("\n\nDone.");
+        //         });
 
         core.run(req).unwrap();
     }
