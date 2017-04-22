@@ -1,1 +1,22 @@
    Compiling hangups v0.0.1 (file:///source)
+error[E0505]: cannot move out of `res` because it is borrowed
+   --> src/lib.rs:235:78
+    |
+235 |                     do_auth_step(&client, email_uri, &res, &format!("{:?}", &res.body()).as_str(), client_email, client_passwd, &res.headers());
+    |                                                       ---                    ^^^ move out of `res` occurs here
+    |                                                       |
+    |                                                       borrow of `res` occurs here
+
+error[E0382]: use of moved value: `res`
+   --> src/lib.rs:235:130
+    |
+235 |                     do_auth_step(&client, email_uri, &res, &format!("{:?}", &res.body()).as_str(), client_email, client_passwd, &res.headers());
+    |                                                                              --- value moved here                                ^^^ value used here after move
+    |
+    = note: move occurs because `res` has type `hyper::client::Response`, which does not implement the `Copy` trait
+
+error: aborting due to 2 previous errors
+
+error: Could not compile `hangups`.
+
+To learn more, run the command again with --verbose.

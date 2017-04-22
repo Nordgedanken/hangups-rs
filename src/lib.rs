@@ -231,7 +231,7 @@ pub mod auth {
         println!("You typed: {}", client_passwd);
 
         // Login Step1
-        let req = client.get(auth_uri).and_then(move |res| {
+        let req = client.get(auth_uri).and_then(|res| {
                     do_auth_step(&client, email_uri, &res, &format!("{:?}", &res.body()).as_str(), client_email, client_passwd, &res.headers());
                     Ok(())
                 })
