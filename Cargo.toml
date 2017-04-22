@@ -14,3 +14,18 @@ regex = "0.2"
 url = "1.4.0"
 tokio-core = "0.1.6"
 futures = "0.1.13"
+
+[package]
+publish = false # Not ready yet!
+exclude = ["src/hangups/proto/hangouts.proto"] # don't include the originial proto
+keywords = ["hangups", "hangouts", "google"]
+categories = ["api-bindings"]
+license = "MIT"
+
+[badges]
+# Travis CI: `repository` is required. `branch` is optional; default is `master`
+travis-ci = { repository = "Nordgedanken/hangups-rs", branch = "master" }
+# Appveyor: `repository` is required. `branch` is optional; default is `master`
+# `service` is optional; valid values are `github` (default), `bitbucket`, and
+# `gitlab`.
+appveyor = { repository = "Nordgedanken/hangups-rs", branch = "master", service = "github" }
