@@ -232,7 +232,8 @@ pub mod auth {
 
         // Login Step1
         let req = client.get(auth_uri).and_then(|res| {
-                    do_auth_step(&client, email_uri, &res, &format!("{:?}", &res.body()).as_str(), client_email, client_passwd, &res.headers());
+                    let body = format!("{:?}", res.body());
+                    do_auth_step(&client, email_uri, &res, body.as_str(), client_email, client_passwd, &res.headers());
                     Ok(())
                 })
                 .map(|_| {
