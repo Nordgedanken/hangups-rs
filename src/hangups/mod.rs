@@ -10,7 +10,6 @@ pub mod hangups {
     use hyper::header::Cookie;
     use hyper::client::Request;
     use hyper::{Method, Uri};
-    use std::io::{Read, Write};
     use hyper::error::Error;
     use protobuf::Message;
     use std::collections::HashMap;
@@ -21,7 +20,6 @@ pub mod hangups {
     use protobuf::core::parse_from_bytes;
     use auth::get_auth;
     use helper::get_configs;
-    use std::str::FromStr;
     use std;
 
     header! { (ContentType, "content-type") => [String] }
@@ -77,11 +75,7 @@ pub mod hangups {
                    -> Result<String, Error> {
        use hyper::Client;
        use tokio_core::reactor::Core;
-       use std::str::FromStr;
-       use futures::{Future, Stream};
-       use std::cell::RefCell;
-       use std::rc::Rc;
-
+       use futures::Future;
 
        let mut core = Core::new().unwrap();
        let handle = core.handle();
@@ -106,9 +100,9 @@ pub mod hangups {
         for (key, val) in auth_header {
             fresh_request.headers_mut().append_raw(key, val.as_bytes().to_vec());
         }
-        let mut body = String::new();
+        let body = String::new();
 
-        let mut post = client.request(fresh_request)
+        let post = client.request(fresh_request)
                         .map(|res| {
                             let body = res.body();
                             println!("\n\nDone.");

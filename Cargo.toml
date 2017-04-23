@@ -2,6 +2,11 @@
 name = "hangups"
 version = "0.0.1"
 authors = ["MTRNord"]
+publish = false # Not ready yet!
+exclude = ["src/hangups/proto/hangouts.proto"] # don't include the originial proto
+keywords = ["hangups", "hangouts", "google"]
+categories = ["api-bindings"]
+license = "MIT"
 
 [dependencies]
 hyper = { git = "https://github.com/hyperium/hyper" }
@@ -14,13 +19,7 @@ regex = "0.2"
 url = "1.4.0"
 tokio-core = "0.1.6"
 futures = "0.1.13"
-
-[package]
-publish = false # Not ready yet!
-exclude = ["src/hangups/proto/hangouts.proto"] # don't include the originial proto
-keywords = ["hangups", "hangouts", "google"]
-categories = ["api-bindings"]
-license = "MIT"
+hyper-tls = { git = "https://github.com/hyperium/hyper-tls" }
 
 [badges]
 # Travis CI: `repository` is required. `branch` is optional; default is `master`

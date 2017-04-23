@@ -9,23 +9,22 @@ extern crate regex;
 extern crate url;
 extern crate tokio_core;
 extern crate futures;
+extern crate hyper_tls;
 
 pub mod auth {
-    use hyper::{Client, Body, Uri};
-    use hyper::client::{Response, HttpConnector};
-    use tokio_core::reactor::Core;
+    use hyper::{Client, Body, Uri, Error};
     use hyper::header::Headers;
-    fn do_auth_step(client: &Client<HttpConnector, Body>, url: Uri, resp_body: &str, email: String, password: String, mut resp_headers_raw: &Headers) {
+    use hyper_tls::HttpsConnector;
+    use tokio_core::reactor::Core;
+    fn do_auth_step(client: &Client<HttpsConnector, Body>, url: Uri, resp_body: &str, email: String, password: String, resp_headers_raw: Headers) -> Result<(Headers, String), Error> {
         use hyper::header::{Headers, SetCookie, UserAgent};
         use hyper::client::Request;
-        use hyper::{Method, Uri};
+        use hyper::Method;
         use regex::Regex;
         use std::str;
         use url::form_urlencoded;
-        use std::str::FromStr;
-        use futures::Future;
-        use futures::Stream;
-        use tokio_core::reactor::Core;
+        use futures::{Future, Stream};
+        use futures::future;
 
         let mut core = Core::new().unwrap();
         header! { (ContentType, "content-type") => [String] }
@@ -60,52 +59,124 @@ pub mod auth {
         }
 
         let resp_page_re = Regex::new("(?:<input.*name=\"Page\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_page_captures = resp_page_re.captures(resp_body).unwrap();
-        let resp_page = resp_page_captures.get(1).map_or("", |m| m.as_str());
+        let resp_page = match resp_page_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_galx_re = Regex::new("(?:<input.*name=\"GALX\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_galx_captures = resp_galx_re.captures(resp_body).unwrap();
-        let resp_galx = resp_galx_captures.get(1).map_or("", |m| m.as_str());
+        let resp_galx = match resp_galx_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_gxf_re = Regex::new("(?:<input.*name=\"gxf\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_gxf_captures = resp_gxf_re.captures(resp_body).unwrap();
-        let resp_gxf = resp_gxf_captures.get(1).map_or("", |m| m.as_str());
+        let resp_gxf = match resp_gxf_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_continue_re = Regex::new("(?:<input.*name=\"continue\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_continue_captures = resp_continue_re.captures(resp_body).unwrap();
-        let resp_gcontinue = resp_continue_captures.get(1).map_or("", |m| m.as_str());
+        let resp_gcontinue = match resp_continue_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_ltmpl_re = Regex::new("(?:<input.*name=\"ltmpl\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_ltmpl_captures = resp_ltmpl_re.captures(resp_body).unwrap();
-        let resp_ltmpl = resp_ltmpl_captures.get(1).map_or("", |m| m.as_str());
+        let resp_ltmpl = match resp_ltmpl_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_scc_re = Regex::new("(?:<input.*name=\"scc\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_scc_captures = resp_scc_re.captures(resp_body).unwrap();
-        let resp_scc = resp_scc_captures.get(1).map_or("", |m| m.as_str());
+        let resp_scc = match resp_scc_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_sarp_re = Regex::new("(?:<input.*name=\"sarp\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_sarp_captures = resp_sarp_re.captures(resp_body).unwrap();
-        let resp_sarp = resp_sarp_captures.get(1).map_or("", |m| m.as_str());
+        let resp_sarp = match resp_sarp_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_oauth_re = Regex::new("(?:<input.*name=\"oresp\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_oauth_captures = resp_oauth_re.captures(resp_body).unwrap();
-        let resp_oauth = resp_oauth_captures.get(1).map_or("", |m| m.as_str());
+        let resp_oauth = match resp_oauth_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_profile_information_re = Regex::new("(?:<input.*name=\"ProfileInformation\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_profile_information_captures = resp_profile_information_re.captures(resp_body).unwrap();
-        let resp_profile_information = resp_profile_information_captures.get(1).map_or("", |m| m.as_str());
+        let resp_profile_information = match resp_profile_information_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_session_state_re = Regex::new("(?:<input.*name=\"SessionState\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_session_state_captures = resp_session_state_re.captures(resp_body).unwrap();
-        let resp_session_state = resp_session_state_captures.get(1).map_or("", |m| m.as_str());
+        let resp_session_state = match resp_session_state_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp__utf8_re = Regex::new("(?:<input.*name=\"_utf8\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp__utf8_captures = resp__utf8_re.captures(resp_body).unwrap();
-        let resp__utf8 = resp__utf8_captures.get(1).map_or("", |m| m.as_str());
+        let resp__utf8 = match resp__utf8_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let resp_bgresponse_re = Regex::new("(?:<input.*name=\"bgresponse\".*)(?:value=\"([^\"]*))").unwrap();
-        let resp_bgresponse_captures = resp_bgresponse_re.captures(resp_body).unwrap();
-        let resp_bgresponse = resp_bgresponse_captures.get(1).map_or("", |m| m.as_str());
+        let resp_bgresponse = match resp_bgresponse_re.captures(resp_body) {
+            Some(caps) => {
+                caps.get(1).map_or("", |m| m.as_str())
+            }
+            None => {
+                ""
+            }
+        };
 
         let body_send: String = form_urlencoded::Serializer::new(String::new())
                               .append_pair("Page", resp_page)
@@ -130,34 +201,26 @@ pub mod auth {
                               .finish();
 
         // Do Email Login
-        let mut body = String::new();
-
         let mut fresh_request = Request::new(Method::Post, url);
         fresh_request.headers_mut().set(ContentType(String::from("application/x-www-form-urlencoded".to_owned())));
         fresh_request.headers_mut().set(UserAgent::new("Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36".to_owned()));
         fresh_request.set_body(body_send);
-        let mut post = client.request(fresh_request).map_err(|_| ()).and_then(|res| {
-            println!("Response: {}", &res.status());
-            println!("Headers: \n{}", &res.headers());
 
-            &res.body().for_each(|chunk| {
-                let body_chunk = String::from_utf8(chunk.to_vec()).unwrap();
-                body.push_str(&body_chunk.as_str());
-                Ok(())
-            });
-            Ok(())
-        })
-        .map(|_| {
-            println!("\n\nDone.");
-        });
-        &core.run(post).unwrap();
-        // let mut email_post = client.post(url)
-        //                     .body(email_body_send.as_str())
-        //                     .headers(req_headers)
-        //                     .unwrap();
+        let post = client.request(fresh_request)
+                .and_then(|res| {
+                    let headers = res.headers().clone();
+                    res.body().fold(Vec::new(), |mut v, chunk| {
+                                    v.extend(&chunk[..]);
+                                    future::ok::<_, Error>(v)
+                                }).and_then(|chunks| {
+                                    let s = String::from_utf8(chunks).unwrap();
+                                    future::ok::<_, Error>((headers, s))
+                                })
+                });
 
-        // email_post.read_to_string(&mut email_body)
-        //           .unwrap();
+        let (headers, body) = core.run(post).unwrap();
+
+        Ok((headers, body))
     }
 
     fn write_cookie_config() {
@@ -176,23 +239,22 @@ pub mod auth {
     }
 
     pub fn get_auth(mut client_email: String, mut client_passwd: String) {
-        use hyper::Client;
-        use hyper::header::{Headers, SetCookie, UserAgent};
-        use hyper::client::Request;
-        use hyper::{Method, Uri};
-        use std::io::{stdin, stdout, Write, Read};
+        use hyper::{Uri, Client, Error};
+        use hyper::header::Location;
+
+        use std::io::{stdin, stdout, Write};
         use std::str;
-        use url::form_urlencoded;
         use regex::Regex;
+
         use tokio_core::reactor::Core;
-        use std::str::FromStr;
-        use futures::Future;
-        use futures::Stream;
+        use futures::{Future, Stream};
+        use futures::future;
 
         let mut core = Core::new().unwrap();
         let handle = core.handle();
         let client = Client::configure()
                     .keep_alive(true)
+                    .connector(HttpsConnector::new(4,&handle))
                     .build(&handle);
 
         let auth_uri = "https://accounts.google.com/o/oauth2/programmatic_auth?scope=https://www.google.com/accounts/OAuthLogin+https://www.googleapis.com/auth/userinfo.email&client_id=936475272427.apps.googleusercontent.com".parse::<Uri>().unwrap();
@@ -231,20 +293,54 @@ pub mod auth {
         println!("You typed: {}", client_passwd);
 
         // Login Step1
-        let req = client.get(auth_uri);
-        let (_, uri, _, headers, body) = req.deconstruct();
-        do_auth_step(&client, email_uri, &body, client_email, client_passwd, headers);
+        // TODO Make it pretty
+        let req1 = client.get(auth_uri)
+                .and_then(|res| {
+                    let headers = res.headers().clone();
+                    future::ok::<_, Error>(headers)
+                });
 
-        // .and_then(|res| {
-        //             let body = format!("{:?}", (res).body());
-        //             do_auth_step(&client, email_uri, &res, &body, client_email, client_passwd, &res.headers());
-        //             Ok(())
-        //         })
-        //         .map(|_| {
-        //             println!("\n\nDone.");
-        //         });
+        let headers = core.run(req1).unwrap();
 
-        core.run(req).unwrap();
+        let new_location = format!("{:?}", headers.get::<Location>().unwrap()).parse::<Uri>().unwrap();
+
+        let req = client.get(new_location)
+                .and_then(|res| {
+                    res.body().fold(Vec::new(), |mut v, chunk| {
+                                    v.extend(&chunk[..]);
+                                    future::ok::<_, Error>(v)
+                                }).and_then(|chunks| {
+                                    let s = String::from_utf8(chunks).unwrap();
+                                    future::ok::<_, Error>(s)
+                                })
+                });
+
+        let body = core.run(req).unwrap();
+
+        let new_location_re = Regex::new("(?:<A.*)(?:HREF=\"([^\"]*))").unwrap();
+        let new_location_captures = new_location_re.captures(body.as_str()).unwrap();
+        let new_location_raw = new_location_captures.get(1).map_or("", |m| m.as_str());
+        let new_location = new_location_raw.parse::<Uri>().unwrap();
+
+        let req = client.get(new_location)
+                .and_then(|res| {
+                    let headers = res.headers().clone();
+                    res.body().fold(Vec::new(), |mut v, chunk| {
+                                    v.extend(&chunk[..]);
+                                    future::ok::<_, Error>(v)
+                                }).and_then(|chunks| {
+                                    let s = String::from_utf8(chunks).unwrap();
+                                    future::ok::<_, Error>((headers, s))
+                                })
+                });
+
+        let (headers, body) = core.run(req).unwrap();
+
+        let (headers, body) = do_auth_step(&client, email_uri, &body, client_email.clone(), client_passwd.clone(), headers).unwrap();
+        let (headers, body) = do_auth_step(&client, passwd_uri, &body, client_email.clone(), client_passwd.clone(), headers).unwrap();
+
+        println!("");
+        print!("{:?}", body);
     }
 }
 
